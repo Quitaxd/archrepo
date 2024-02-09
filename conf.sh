@@ -1,21 +1,38 @@
 #!/usr/bin/env bash
 
-REPODIR="~/Projects/archrepo/x86_64"
-PKGBUILDDIR="~/Projects/archrepo/pkgbuild"
+REPODIR="$HOME/Projects/archrepo/x86_64"
+PKGBUILDDIR="$HOME/Projects/archrepo/pkgbuild"
 OLDDIR="$PWD"
+REPONAME="qrepo"
+
+if [ "$1" == "" ]; then
+	printf "Flags: add, rebuild, push\n"
+fi
 
 addpkg() {
 	cd $PKGBUILDDIR
-	git clone https://aur.archlinux.org/$2.git
-	cd $1
+	if [ -d "$PKGNAME" ]; then
+		rm -rf $PKGNAME
+	fi
+	git clone https://aur.archlinux.org/$PKGNAME.git
+	cd $PKGNAME
 	makepkg -s
 	cp *.pkg.tar.zst $REPODIR
+	cd $REPODIR
+	repo-add $REPONAME.db.tar.gz *.pkg.tar.zst
+	rm $REPONAME.{db,files}
+	mv $REPONAME.db.tar.gz $REPONAME.db
+	mv $REPONAME.files.tar.gz $REPONAME.files
 	cd $OLDDIR
 }
 
 buildrepo() {
 	cd $REPODIR
-	repo-add qrepo.db.tar.gz *.pkg.tar.zst
+	repo-add $REPONAME.db.tar.gz *.pkg.tar.zst
+	cd $REPODIR
+	rm $REPONAME.{db,files}
+	mv $REPONAME.db.tar.gz $REPONAME.db
+	mv $REPONAME.files.tar.gz $REPONAME.files
 	cd $OLDDIR
 }
 
@@ -28,6 +45,7 @@ pushrepo() {
 }
 
 if [ "$1" == "add" ]; then
+	PKGNAME="$2"
 	addpkg
 	buildrepo
 	pushrepo
